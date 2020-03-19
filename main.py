@@ -67,7 +67,7 @@ class YTPO:
                   json.dump(creds_data, outfile)
         else:
             print("Credentials file found")
-            CLIENT_CREDENTIALS_FILE = 'credentials.json'
+            CLIENT_CREDENTIALS_FILE = 'secrets/credentials.json'
             credentials = google.oauth2.credentials.Credentials.from_authorized_user_file(CLIENT_CREDENTIALS_FILE)
 
         self.youtube = build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
@@ -110,7 +110,7 @@ class YTPO:
                 playlistId=playlist_id
                 ).execute()
         for vid in response['items']:
-            print("%s" % (vid["snippet"]["title"]))
+            print("%s | %s" % (vid["id"], vid["snippet"]["title"]))
 
         return response
 
