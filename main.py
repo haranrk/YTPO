@@ -30,7 +30,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
     
 class YTPO:
     def __init__(self):
-        self.CLIENT_SECRETS_FILE = 'client_secret.json'
+        self.CLIENT_SECRETS_FILE = 'secrets/client_secret.json'
 
         # This OAuth 2.0 access scope allows for full read/write access to the
         # authenticated user's account.
@@ -42,7 +42,7 @@ class YTPO:
         API_SERVICE_NAME = 'youtube'
         API_VERSION = 'v3'
         # credentials = flow.run_console()
-        if not os.path.isfile('credentials.json'):
+        if not os.path.isfile('secrets/credentials.json'):
             print("Credentials file not found")
             flow = InstalledAppFlow.from_client_secrets_file(self.CLIENT_SECRETS_FILE, SCOPES)
             credentials = flow.run_local_server(host='localhost',
@@ -63,7 +63,7 @@ class YTPO:
             save = True
             if save:
               del creds_data['token']
-              with open('credentials.json', 'w') as outfile:
+              with open('secrets/credentials.json', 'w') as outfile:
                   json.dump(creds_data, outfile)
         else:
             print("Credentials file found")
