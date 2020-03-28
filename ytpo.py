@@ -266,9 +266,9 @@ class YTPO:
         pl_pbar = tqdm(playlists, desc="Retrieving playlists")
         for pl in pl_pbar:
             pl_id = pl['id']
-            title = pl['snippet']['title']
+            pl_title = pl['snippet']['title']
             # pl_pbar.set_postfix_str("%s"%(title))
-            pl_path = osp.join(playlists_root_path,YTPO.combiner(title,pl_id))+'.txt'
+            pl_path = osp.join(playlists_root_path,YTPO.combiner(pl_title,pl_id))+'.txt'
             pl_file = open(pl_path,'w')
 
             playlist_items = self.list_playlist_items(pl_id)['items']
@@ -279,7 +279,7 @@ class YTPO:
                 item_vid_id = item["snippet"]["resourceId"]["videoId"]
                 item_id = item["id"]
                 pl_file.write("%s\n"%(YTPO.combiner(item_title,item_vid_id)))
-                db.insert({"id": item_id,"pos": item_pos, "vid_id": item_vid_id, "pl_id": pl_id, "pl_title":title, "vid_title":item_title})
+                db.insert({"id": item_id,"pos": item_pos, "vid_id": item_vid_id, "pl_id": pl_id, "pl_title":pl_title, "vid_title":item_title})
             pl_file.close()
 
         print("\n The playlists have been retrieved and the files have been generated at %s. When you are done, enter Y to update the playlists online. Press n to abort." %(osp.abspath(playlists_root_path)))
@@ -290,8 +290,8 @@ class YTPO:
             pl_files = [(type(self).separate(x[:-4])) for x in pl_files]
 
             # import ipdb; ipdb.set_trace()
-            for title, pl_id in pl_files:
-                pl_path = osp.join(playlists_root_path,YTPO.combiner(title,pl_id))+'.txt'
+            for pl_title, pl_id in pl_files:
+                pl_path = osp.join(playlists_root_path,YTPO.combiner(pl_title,pl_id))+'.txt'
                 pl_file = open(pl_path,'r')
                 pl_hash_items = pl_file.readlines()
                 pl_hash_items = [x.strip() for x in pl_hash_items] 
@@ -309,7 +309,7 @@ class YTPO:
                         vids_to_remove = [{**{"task": "remove"},**x} for x in pl_items_old[pos:]]
 
                     if flag == 1:
-                        task_q.append({"task": "insert", "pl_id": pl_id, "pl_title": title,"vid_id": item_vid_id,"pos":pos, "vid_title":item_title})
+                        task_q.append({"task": "insert", "pl_id": pl_id, "pl_title": pl_title,"vid_id": item_vid_id,"pos":pos, "vid_title":item_title})
                 task_q += vids_to_remove
                     
             affected_playlists = set([type(self).combiner(x["pl_title"],x["pl_id"]) for x in task_q])
