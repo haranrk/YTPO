@@ -267,7 +267,6 @@ class YTPO:
         for pl in pl_pbar:
             pl_id = pl['id']
             pl_title = pl['snippet']['title']
-            # pl_pbar.set_postfix_str("%s"%(title))
             pl_path = osp.join(playlists_root_path,YTPO.combiner(pl_title,pl_id))+'.txt'
             pl_file = open(pl_path,'w')
 
@@ -289,7 +288,6 @@ class YTPO:
             pl_files = type(self).list_only_ytpo_files(playlists_root_path)
             pl_files = [(type(self).separate(x[:-4])) for x in pl_files]
 
-            # import ipdb; ipdb.set_trace()
             for pl_title, pl_id in pl_files:
                 pl_path = osp.join(playlists_root_path,YTPO.combiner(pl_title,pl_id))+'.txt'
                 pl_file = open(pl_path,'r')
@@ -304,7 +302,7 @@ class YTPO:
                 vids_to_remove =[]
                 for pos,pl_hash_item in enumerate(pl_hash_items):
                     item_title, item_vid_id = type(self).separate(pl_hash_item)
-                    if flag == 0 and pl_items_old[pos]["vid_id"] != item_vid_id:
+                    if flag == 0 and ((pl_items_old[pos]["vid_id"] != item_vid_id) if len(pl_items_old)>pos else True):
                         flag = 1
                         vids_to_remove = [{**{"task": "remove"},**x} for x in pl_items_old[pos:]]
 
