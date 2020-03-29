@@ -1,6 +1,6 @@
 [![PyPI version](https://badge.fury.io/py/ytpo.svg)](https://badge.fury.io/py/ytpo)
 # YTPO - Youtube playlist organizer
-YouTube and YouTube music's playlist organization capabilities are severely lacking. Therefore, YTPO is a nifty app that allows you to organize your playlist via a host of methods.
+YouTube and YouTube music's playlist organization capabilities are severely lacking. Therefore, YTPO is a nifty cli app that allows you to organize your playlist via a host of methods.
 
 ## Installation 
 ```Python
@@ -33,4 +33,5 @@ This mode retrieves all of your playlists, creates a text file for each playlist
 - Prune duplicate entries
 - Append playlist to another playlist
 - Shuffle playlist
+- Make helper videos
 
