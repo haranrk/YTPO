@@ -211,11 +211,11 @@ class YTPO:
             
             plitem_pbar = tqdm(playlist_items, desc=pl_title)
             for item in plitem_pbar:
-                item_title = item["snippet"]["title"].replace('/','_').replace('\\','_')
-                item_id_video = item["snippet"]["resourceId"]["videoId"]
-                open(osp.join(playlist_path,type(self).combine(item_title,item_id_video)),'a').close()
+                item_title = item["snippet"]["title"].replace('/','_').replace('\\','_') #Replaces back and forward slashes to '_' to avoid file path conflicts
+                item_vid_id = item["snippet"]["resourceId"]["videoId"]
                 item_id = item["id"]
-                db.insert({"id": item_id,"video_id": item_id_video, "pl_id": pl_id, "playlist_title":pl_title, "video_title":item_title})
+                open(osp.join(playlist_path,type(self).combine(item_title,item_id)),'a').close()
+                db.insert({"id": item_id,"vid_id": item_vid_id, "pl_id": pl_id, "pl_title":pl_title, "vid_title":item_title})
 
         print("\n The playlists have been retrieved and the folders have been generated at %s. When you are done, enter Y to update the playlists online. Press n to abort." %(osp.abspath(playlists_root_path)))
         cmd = input()
@@ -225,45 +225,51 @@ class YTPO:
             del_q = []
 
             for playlist_path in playlist_paths:
-                pl_id = playlist_path.split(type(self).separator)[-1]
-                playlist_title = type(self).separator.join(playlist_path.split(type(self).separator)[:-1])
+                pl_title, pl_id = type(self).separate(playlist_path)
+                # pl_id = playlist_path.split(type(self).separator)[-1]
+                # playlist_title = type(self).separator.join(playlist_path.split(type(self).separator)[:-1])
                 
-                playlist_items_new = [x.split(type(self).separator)[-1] for x in type(self).list_only_ytpo_files(osp.join(playlists_root_path,playlist_path))]
-                playlist_items_old = [x["video_id"] for x in db.search(where("pl_id")==pl_id)]
+                playlist_items_new = [type(self).separate(x)[1] for x in type(self).list_only_ytpo_files(osp.join(playlists_root_path,playlist_path))]
+                playlist_items_old = [x["id"] for x in db.search(where("pl_id")==pl_id)]
 
                 # For adding 
-                for item in playlist_items_new:
-                    if not item in playlist_items_old:
-                        video_title = db.search(where("video_id")==item)[0]["video_title"]
-                        add_q.append({"pl_id": pl_id,"video_id":item,"playlist_title":playlist_title,"video_title":video_title})
+                for item_id in playlist_items_new:
+                    if not item_id in playlist_items_old:
+                        item = db.search(where("id")==item_id)[0]
+                        add_q.append({"pl_id": pl_id,"vid_id":item["vid_id"],"pl_title":pl_title,"vid_title":item["vid_title"]})
 
                 #For deleting
-                for item in playlist_items_old:
-                    if not item in playlist_items_new:
-                        item_ids = db.search((where("video_id")==item) & (where("pl_id")==pl_id))
-                        del_q+= item_ids
+                for item_id in playlist_items_old:
+                    if not item_id in playlist_items_new:
+                        # item_ids = db.search((where("video_id")==item) & (where("pl_id")==pl_id))
+                        item = db.search(where("id")==item_id)
+                        del_q+= item
                 
             print("The following changes will be made to your playlists")
 
             def summarise_q(q):
                 for i in q:
-                    print("\t%s\t|\t%s" % (i["playlist_title"],i["video_title"]))
+                    print("\t%s\t|\t%s" % (i["pl_title"],i["vid_title"]))
 
             print("\nThese videos would be REMOVED from the corresponding playlists")
             summarise_q(del_q)
             print("\nThese videos would be ADDED to the corresponding playlists")
             summarise_q(add_q)
 
-            print("Proceed? (Y/n)")
+            print("\nProceed? (Y/n)")
             cmd = input()
 
             if cmd == "Y":
                 print("Deleting videos")
-                for i in del_q:
+                q_bar = tqdm(del_q,desc="Deleting Videos")
+                for i in q_bar:
                     self.remove_playlist_item(i["id"])
+
                 print("Adding videos")
-                for i in add_q:
-                    self.insert_playlist_item(i["pl_id"],i["video_id"])
+                q_bar = tqdm(add_q,desc="Adding Videos")
+                for i in q_bar:
+                    self.insert_playlist_item(i["pl_id"],i["vid_id"])
+
             else:
                 print("Aborting")
         
