@@ -18,7 +18,6 @@ This mode retrieves all of your playlists, creates a text file for each playlist
 
 ## TODO
 - Package the app as a python module
-- List file mode
 - Prune duplicate entries
 - Append playlist to another playlist
 - Shuffle playlist

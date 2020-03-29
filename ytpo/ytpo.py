@@ -27,10 +27,9 @@ from tinydb import TinyDB, where, Query
 #   https://developers.google.com/api-client-library/python/guide/aaa_client_secrets
     
 class YTPO:
-    separator = '| - | - |'
+    separator = '| - | - |' #String used to separate the title and ID for list and file modes
     def __init__(self):
         self.CLIENT_SECRETS_FILE = 'secrets/client_secret.json'
-
         # This OAuth 2.0 access scope allows for full read/write access to the
         # authenticated user's account.
         self.get_authenticated_service()
@@ -72,8 +71,7 @@ class YTPO:
         self.youtube = build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
     
     def add_playlist(self, args):
-      
-      body = dict(
+        body = dict(
         snippet=dict(
           title=args.title,
           description=args.description
@@ -81,28 +79,38 @@ class YTPO:
         status=dict(
           privacyStatus='private'
         ) 
-      ) 
-        
-      print(body)
-      playlists_insert_response = self.youtube.playlists().insert(
+        ) 
+
+        print(body)
+        playlists_insert_response = self.youtube.playlists().insert(
         part='snippet,status',
         body=body
-      ).execute()
+        ).execute()
 
-      print('New playlist ID: %s' % playlists_insert_response['id'])
+        print('New playlist ID: %s' % playlists_insert_response['id'])
       
     def list_playlists(self, verbose=False):
         response = self.youtube.playlists().list(part='snippet',mine=True,maxResults=50).execute()
-        # import ipdb;ipdb.set_trace()
         if verbose:
             for pl in response['items']:
                 print("%s | %s" %(pl["id"],pl['snippet']['title']))
         return response
 
-    def list_playlist_items(self,playlist_id, verbose=False):
+    def list_playlist_items(self,pl_id, verbose=False):
+        '''
+        Lists playlist item for specified playlist
+
+        Parameters:
+        pl_id(str) -- Playlist ID
+        verbose(bool) -- If true prints the items
+
+        Returns:
+        list -- playlist items
+        '''
+
         response = self.youtube.playlistItems().list(
                 part="snippet",
-                playlistId=playlist_id,
+                playlistId=pl_id,
                 maxResults=50
                 ).execute()
         if verbose:
@@ -110,13 +118,22 @@ class YTPO:
                 print("%s | %s" % (vid["id"], vid["snippet"]["title"]))
         return response
 
-    def update_playlist_item(self,id,playlist_id,resource_id,new_position):
+    def update_playlist_item(self,id,pl_id,resource_id,new_pos):
+        '''
+        Updates the corresponding playlist item with either a different video and/or position
+
+        Parameters:
+        id -- Unique ID of playlist item
+        pl_id -- ID of playlist
+        resource_id -- ID of playlist resource (usually video)
+        new_pos -- Position of item within the playlist
+        '''
         body = {
                 "id": id,
                 "snippet": {
-                        "playlistId": playlist_id,
+                        "playlistId": pl_id,
                         "resourceId": resource_id,
-                        "position": new_position
+                        "position": new_pos
                     }
                 }
         return self.youtube.playlistItems().update(
@@ -124,10 +141,21 @@ class YTPO:
                     body=body
                 ).execute()
 
-    def insert_playlist_item(self, playlist_id,video_id, pos=0):
+    def insert_playlist_item(self, pl_id,video_id, pos=0):
+        '''
+        Inserts a new item into an existing a playlist at specified position
+
+        Parameters:
+            pl_id -- ID of playlist
+            video_id -- ID of video
+            pos -- Position to be inserted
+
+        Returns:
+            dict -- Response of request
+        '''
         body = {
                 "snippet": {
-                    "playlistId": playlist_id,
+                    "playlistId": pl_id,
                     "position": pos,
                     "resourceId": {
                         "kind": "youtube#video",
@@ -139,9 +167,32 @@ class YTPO:
                 part="snippet",
                 body=body
                 ).execute()
+        return response
 
     def remove_playlist_item(self,id):
+        '''
+        Removes item from playlist
+        Parameters:
+        id -- ID of playlist item
+        '''
         return self.youtube.playlistItems().delete(id=id).execute()
+
+    @classmethod
+    def combine(cls,title, id):
+        '''
+        Combines the title and id with the separator
+        '''
+        return "%s%s%s"%(title,cls.separator,id)
+
+    @classmethod
+    def separate(cls,id_str):
+        '''
+        Combines the title and id with the separator
+        '''
+        id_str = id_str[::-1] # Reverses the string
+        id,title = id_str.split(cls.separator,1)
+
+        return title[::-1],id[::-1]
 
     def folder_mode(self):
         playlists = self.list_playlists()['items']
@@ -151,21 +202,20 @@ class YTPO:
 
         pl_pbar = tqdm(playlists, desc="Retrieving playlists")
         for playlist in pl_pbar:
-            playlist_id = playlist['id']
-            title = playlist['snippet']['title']
-            # pl_pbar.set_postfix_str("%s"%(title))
-            playlist_path = osp.join(playlists_root_path,YTPO.combiner(title,playlist_id))
+            pl_id = playlist['id']
+            pl_title = playlist['snippet']['title']
+            playlist_path = osp.join(playlists_root_path,type(self).combine(pl_title,pl_id))
 
             os.mkdir(playlist_path)
-            playlist_items = self.list_playlist_items(playlist_id)['items']
+            playlist_items = self.list_playlist_items(pl_id)['items']
             
-            plitem_pbar = tqdm(playlist_items, desc=title)
+            plitem_pbar = tqdm(playlist_items, desc=pl_title)
             for item in plitem_pbar:
                 item_title = item["snippet"]["title"].replace('/','_').replace('\\','_')
                 item_id_video = item["snippet"]["resourceId"]["videoId"]
-                open(osp.join(playlist_path,YTPO.combiner(item_title,item_id_video)),'a').close()
+                open(osp.join(playlist_path,type(self).combine(item_title,item_id_video)),'a').close()
                 item_id = item["id"]
-                db.insert({"id": item_id,"video_id": item_id_video, "playlist_id": playlist_id, "playlist_title":title, "video_title":item_title})
+                db.insert({"id": item_id,"video_id": item_id_video, "pl_id": pl_id, "playlist_title":pl_title, "video_title":item_title})
 
         print("\n The playlists have been retrieved and the folders have been generated at %s. When you are done, enter Y to update the playlists online. Press n to abort." %(osp.abspath(playlists_root_path)))
         cmd = input()
@@ -175,22 +225,22 @@ class YTPO:
             del_q = []
 
             for playlist_path in playlist_paths:
-                playlist_id = playlist_path.split(type(self).separator)[-1]
+                pl_id = playlist_path.split(type(self).separator)[-1]
                 playlist_title = type(self).separator.join(playlist_path.split(type(self).separator)[:-1])
                 
                 playlist_items_new = [x.split(type(self).separator)[-1] for x in type(self).list_only_ytpo_files(osp.join(playlists_root_path,playlist_path))]
-                playlist_items_old = [x["video_id"] for x in db.search(where("playlist_id")==playlist_id)]
+                playlist_items_old = [x["video_id"] for x in db.search(where("pl_id")==pl_id)]
 
                 # For adding 
                 for item in playlist_items_new:
                     if not item in playlist_items_old:
                         video_title = db.search(where("video_id")==item)[0]["video_title"]
-                        add_q.append({"playlist_id": playlist_id,"video_id":item,"playlist_title":playlist_title,"video_title":video_title})
+                        add_q.append({"pl_id": pl_id,"video_id":item,"playlist_title":playlist_title,"video_title":video_title})
 
                 #For deleting
                 for item in playlist_items_old:
                     if not item in playlist_items_new:
-                        item_ids = db.search((where("video_id")==item) & (where("playlist_id")==playlist_id))
+                        item_ids = db.search((where("video_id")==item) & (where("pl_id")==pl_id))
                         del_q+= item_ids
                 
             print("The following changes will be made to your playlists")
@@ -213,7 +263,7 @@ class YTPO:
                     self.remove_playlist_item(i["id"])
                 print("Adding videos")
                 for i in add_q:
-                    self.insert_playlist_item(i["playlist_id"],i["video_id"])
+                    self.insert_playlist_item(i["pl_id"],i["video_id"])
             else:
                 print("Aborting")
         
@@ -234,22 +284,6 @@ class YTPO:
         x = filter(starts_with_stop,x)
         return x
 
-    @classmethod
-    def combiner(cls,title, id):
-        '''
-        Combines the title and id with the separator
-        '''
-        return "%s%s%s"%(title,cls.separator,id)
-
-    @classmethod
-    def separate(cls,id_str):
-        '''
-        Combines the title and id with the separator
-        '''
-        id_str = id_str[::-1] # Reverses the string
-        id,title = id_str.split(cls.separator,1)
-
-        return title[::-1],id[::-1]
 
     def list_mode(self):
         playlists = self.list_playlists()['items']
@@ -267,7 +301,7 @@ class YTPO:
         for pl in pl_pbar:
             pl_id = pl['id']
             pl_title = pl['snippet']['title']
-            pl_path = osp.join(playlists_root_path,YTPO.combiner(pl_title,pl_id))+'.txt'
+            pl_path = osp.join(playlists_root_path,type(self).combine(pl_title,pl_id))+'.txt'
             pl_file = open(pl_path,'w')
 
             playlist_items = self.list_playlist_items(pl_id)['items']
@@ -277,7 +311,7 @@ class YTPO:
                 item_pos = item["snippet"]["position"]
                 item_vid_id = item["snippet"]["resourceId"]["videoId"]
                 item_id = item["id"]
-                pl_file.write("%s\n"%(YTPO.combiner(item_title,item_vid_id)))
+                pl_file.write("%s\n"%(type(self).combine(item_title,item_vid_id)))
                 db.insert({"id": item_id,"pos": item_pos, "vid_id": item_vid_id, "pl_id": pl_id, "pl_title":pl_title, "vid_title":item_title})
             pl_file.close()
 
@@ -289,7 +323,7 @@ class YTPO:
             pl_files = [(type(self).separate(x[:-4])) for x in pl_files]
 
             for pl_title, pl_id in pl_files:
-                pl_path = osp.join(playlists_root_path,YTPO.combiner(pl_title,pl_id))+'.txt'
+                pl_path = osp.join(playlists_root_path,type(self).combine(pl_title,pl_id))+'.txt'
                 pl_file = open(pl_path,'r')
                 pl_hash_items = pl_file.readlines()
                 pl_hash_items = [x.strip() for x in pl_hash_items] 
@@ -310,13 +344,13 @@ class YTPO:
                         task_q.append({"task": "insert", "pl_id": pl_id, "pl_title": pl_title,"vid_id": item_vid_id,"pos":pos, "vid_title":item_title})
                 task_q += vids_to_remove
                     
-            affected_playlists = set([type(self).combiner(x["pl_title"],x["pl_id"]) for x in task_q])
+            affected_playlists = set([type(self).combine(x["pl_title"],x["pl_id"]) for x in task_q])
             print("The following changes will be made to your playlists")
             for pl in affected_playlists:
                 print(pl)
 
-            for q in task_q:
-                print("%s\t%s %s"%(q["pl_title"],"X" if q["task"]=="remove" else str(q["pos"]+1)+'.',q["vid_title"]+q["vid_id"]))
+            # for q in task_q:
+                # print("%s\t%s %s"%(q["pl_title"],"X" if q["task"]=="remove" else str(q["pos"]+1)+'.',q["vid_title"]+q["vid_id"]))
 
             print("Proceed? (Y/n)")
             cmd = input()
@@ -334,10 +368,19 @@ class YTPO:
         
         shutil.rmtree(playlists_root_path)
 
+def main():
+    print("-"*12)
+    print("    YTPO")
+    print("-"*12)
+    parser = argparse.ArgumentParser()
+    allowed_commands = ["list", "folder"]
+    parser.add_argument("command", choices = allowed_commands)
+    args = parser.parse_args()
+    x = YTPO()
+    if args.command == "list":
+        x.list_mode()
+    elif args.command == "folder":
+        x.folder_mode()
+
 if __name__ == '__main__':
-  x = YTPO()
-  try:
-    # x.list_playlist_items("PLvipJsxgjo94NhE92dF7cF4828tXKH_-T",verbose=True)
-    x.list_mode()
-  except HttpError as e:
-    print('An HTTP error %d occurred:\n%s' % (e.resp.status, e.content))
+    main()
