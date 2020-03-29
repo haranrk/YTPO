@@ -9,6 +9,14 @@ setuptools.setup(
     description="YouTube Playlist Organizer",
     url="https://github.com/haranrk/",
     packages=setuptools.find_packages(),
+    include_package_data=True,
+    install_requires=[
+        'google-api-python-client',
+        'tqdm',
+        'google-auth-oauthlib', 
+        'google-auth-httplib2',
+        'tinydb'
+        ],
     entry_points='''
         [console_scripts]
         ytpo=ytpo.ytpo:main

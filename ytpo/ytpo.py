@@ -29,7 +29,12 @@ from tinydb import TinyDB, where, Query
 class YTPO:
     separator = '| - | - |' #String used to separate the title and ID for list and file modes
     def __init__(self):
-        self.CLIENT_SECRETS_FILE = 'secrets/client_secret.json'
+        self.ytpo_root = osp.dirname(__file__)
+
+        self.CLIENT_SECRETS_FILE = osp.join(self.ytpo_root,'secrets','client_secret.json')
+        if not osp.isfile(self.CLIENT_SECRETS_FILE):
+            raise FileNotFoundError("Client Secret file not found")
+
         # This OAuth 2.0 access scope allows for full read/write access to the
         # authenticated user's account.
         self.get_authenticated_service()
@@ -37,10 +42,11 @@ class YTPO:
     # Authorize the request and store authorization credentials.
     def get_authenticated_service(self):
         SCOPES = ['https://www.googleapis.com/auth/youtube']
+        CLIENT_CREDENTIALS_FILE = osp.join(self.ytpo_root,'secrets','credentials.json')
         API_SERVICE_NAME = 'youtube'
         API_VERSION = 'v3'
         # credentials = flow.run_console()
-        if not os.path.isfile('secrets/credentials.json'):
+        if not os.path.isfile(CLIENT_CREDENTIALS_FILE):
             print("Credentials file not found")
             flow = InstalledAppFlow.from_client_secrets_file(self.CLIENT_SECRETS_FILE, SCOPES)
             credentials = flow.run_local_server(host='localhost',
@@ -61,11 +67,10 @@ class YTPO:
             save = True
             if save:
               del creds_data['token']
-              with open('secrets/credentials.json', 'w') as outfile:
+              with open(CLIENT_CREDENTIALS_FILE, 'w') as outfile:
                   json.dump(creds_data, outfile)
         else:
-            print("Credentials file found")
-            CLIENT_CREDENTIALS_FILE = 'secrets/credentials.json'
+            # print("Credentials file found")
             credentials = google.oauth2.credentials.Credentials.from_authorized_user_file(CLIENT_CREDENTIALS_FILE)
 
         self.youtube = build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
@@ -260,12 +265,10 @@ class YTPO:
             cmd = input()
 
             if cmd == "Y":
-                print("Deleting videos")
                 q_bar = tqdm(del_q,desc="Deleting Videos")
                 for i in q_bar:
                     self.remove_playlist_item(i["id"])
 
-                print("Adding videos")
                 q_bar = tqdm(add_q,desc="Adding Videos")
                 for i in q_bar:
                     self.insert_playlist_item(i["pl_id"],i["vid_id"])
