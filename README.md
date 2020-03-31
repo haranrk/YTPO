@@ -29,8 +29,6 @@ This mode retrieves all of your playlists, creates a text file for each playlist
 1. Add a new item from a different playlist by copying the corresponding line from the other playlist file and pasting it in the target playlist file.
 
 ## TODO
-- Package the app as a python module
-- Prune duplicate entries
 - Append playlist to another playlist
 - Shuffle playlist
 

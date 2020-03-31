@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import argparse
-from collections import Counter
 import os
 import shutil
 import os.path as osp
@@ -377,45 +376,12 @@ class YTPO:
                 print("Aborting")
         
         shutil.rmtree(playlists_root_path)
-
     def trim_playlist(self,pl_id):
-        playlist_items = self.list_playlist_items(pl_id)['items']
-        removed_items_cntr = Counter()
-        unique_vids = []
-
-        for item in playlist_items:
-            if item["snippet"]["resourceId"]["videoId"] not in unique_vids:
-                unique_vids.append(item["snippet"]["resourceId"]["videoId"])
-            else:
-                removed_items_cntr[item["snippet"]["title"]]+=1
-                self.remove_playlist_item(item["id"])
-
-        if removed_items_cntr.most_common() == []:
-            print("No duplicates found")
-        else:
-            print("Ocurrences Title")
-            for title, count in removed_items_cntr.items():
-                print("%10i %s"%(count+1,title)) 
 
     def trim_mode(self):
         playlists = self.list_playlists()['items']
         print("Choose which playlists you want to trim.")
-        print("S.No. Playlist Name")
-        for i,pl in enumerate(playlists):
-            print("%5i %s"%(i+1,pl["snippet"]["title"]))   
-
-        print("Enter your choices as comma-separated values of the S.Nos (Ex: '2,3' will trim the 2nd and 3rd playlists)")
-        print("Or enter 'all' to remove duplicates from all playlists")
-        choices = input()
-        if choices == 'all':
-            pl_indexes = list(range(len(playlists)))
-
-        else:
-            pl_indexes = [int(x)-1 for x in choices.split(',')]
-
-        for pl_index in pl_indexes:
-            print("\nRemoving duplicates from %s" % (playlists[pl_index]["snippet"]["title"]))
-            self.trim_playlist(playlists[pl_index]["id"])
+        
 
 def main():
     print("-"*12)
@@ -427,7 +393,7 @@ def main():
     sub_parsers = parser.add_subparsers(help="Available commands")
 
     trim_parser = sub_parsers.add_parser("trim",help="Removes duplicate items from the specified playlists")
-    trim_parser.set_defaults(func=x.trim_mode)
+    list_parser.set_defaults(func=x.list_mode)
     list_parser = sub_parsers.add_parser("list",help="Creates editable files containing playlist items in their respecitive order")
     list_parser.set_defaults(func=x.list_mode)
     folder_parser = sub_parsers.add_parser("folder",help="Creates a folders for each playlist containing a mock file for each play list item")
