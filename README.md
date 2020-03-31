@@ -44,9 +44,8 @@ ytpo trim
 ```
 Removes duplicate items from the specified playlists
 
-## TODO
-=======
-- Append playlist to another playlist
-- Shuffle playlist
-- Make helper videos
-
+### Shuffle mode
+```Python
+ytpo trim
+```
+Shuffles  the specified playlists

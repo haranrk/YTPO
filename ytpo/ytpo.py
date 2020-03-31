@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import random
 import argparse
 from collections import Counter
 import os
@@ -138,7 +139,10 @@ class YTPO:
                 "id": id,
                 "snippet": {
                         "playlistId": pl_id,
-                        "resourceId": resource_id,
+                        "resourceId": {
+                            "kind": "youtube#video",
+                            "videoId": resource_id,
+                            },
                         "position": new_pos
                     }
                 }
@@ -417,6 +421,34 @@ class YTPO:
             print("\nRemoving duplicates from %s" % (playlists[pl_index]["snippet"]["title"]))
             self.trim_playlist(playlists[pl_index]["id"])
 
+    def shuffle_playlist(self,pl_id):
+        playlist_items = self.list_playlist_items(pl_id)['items']
+        new_positions = list(range(len(playlist_items)))
+        random.shuffle(new_positions)
+
+        for i,item in enumerate(playlist_items):
+            self.update_playlist_item(item["id"],item["snippet"]["playlistId"],item["snippet"]["resourceId"]["videoId"], new_positions[i])
+
+    def shuffle_mode(self):
+        playlists = self.list_playlists()['items']
+        print("Choose which playlists you want to shuffle.")
+        print("S.No. Playlist Name")
+        for i,pl in enumerate(playlists):
+            print("%5i %s"%(i+1,pl["snippet"]["title"]))   
+
+        print("Enter your choices as comma-separated values of the S.Nos (Ex: '2,3' will trim the 2nd and 3rd playlists)")
+        print("Or enter 'all' to shuffle all playlists")
+        choices = input()
+        if choices == 'all':
+            pl_indexes = list(range(len(playlists)))
+
+        else:
+            pl_indexes = [int(x)-1 for x in choices.split(',')]
+
+        for pl_index in pl_indexes:
+            print("\n Shuffling %s" % (playlists[pl_index]["snippet"]["title"]))
+            self.shuffle_playlist(playlists[pl_index]["id"])
+
 def main():
     print("-"*12)
     print("    YTPO")
@@ -428,6 +460,8 @@ def main():
 
     trim_parser = sub_parsers.add_parser("trim",help="Removes duplicate items from the specified playlists")
     trim_parser.set_defaults(func=x.trim_mode)
+    shuffle_parser = sub_parsers.add_parser("shuffle",help="Shuffles the specified playlists")
+    shuffle_parser.set_defaults(func=x.shuffle_mode)
     list_parser = sub_parsers.add_parser("list",help="Creates editable files containing playlist items in their respecitive order")
     list_parser.set_defaults(func=x.list_mode)
     folder_parser = sub_parsers.add_parser("folder",help="Creates a folders for each playlist containing a mock file for each play list item")
