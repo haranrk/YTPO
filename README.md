@@ -8,7 +8,16 @@ pip install ytpo
 ```
 On the first run of any command, YTPO will need to get accesss to your YouTube account. The authorization page will be opened automatically in your default browser. Log in with the Google account you want to make changes to the playlist in.
 
-## Commands
+## Usage
+It's a CLI.
+```Python
+ytpo <cmd>
+```
+For the list of commands and what they do - 
+```Python
+ytpo -h
+```
+
 ### Folder mode
 ```Python
 ytpo folder
@@ -28,6 +37,12 @@ This mode retrieves all of your playlists, creates a text file for each playlist
 1. Delete items by removing the corresponding line
 1. Make copies of items by duplicating the lines
 1. Add a new item from a different playlist by copying the corresponding line from the other playlist file and pasting it in the target playlist file.
+
+### Trim mode
+```Python
+ytpo trim
+```
+Removes duplicate items from the specified playlists
 
 ## TODO
 =======
