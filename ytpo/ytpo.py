@@ -252,7 +252,7 @@ class YTPO:
                 open(osp.join(playlist_path,type(self).combine(item_title,item_id)),'a').close()
                 db.insert({"id": item_id,"vid_id": item_vid_id, "pl_id": pl_id, "pl_title":pl_title, "vid_title":item_title})
 
-        print("\n The playlists have been retrieved and the folders have been generated at %s. When you are done, enter Y to update the playlists online. Press n to abort." %(osp.abspath(playlists_root_path)))
+        print("\n\nThe playlists have been retrieved and the folders have been generated at %s. When you are done, enter Y to update the playlists online. Press n to abort." %(osp.abspath(playlists_root_path)))
         cmd = input()
         if cmd == 'Y':
             playlist_paths = type(self).list_only_ytpo_files(playlists_root_path)
@@ -261,8 +261,6 @@ class YTPO:
 
             for playlist_path in playlist_paths:
                 pl_title, pl_id = type(self).separate(playlist_path)
-                # pl_id = playlist_path.split(type(self).separator)[-1]
-                # playlist_title = type(self).separator.join(playlist_path.split(type(self).separator)[:-1])
                 
                 playlist_items_new = [type(self).separate(x)[1] for x in type(self).list_only_ytpo_files(osp.join(playlists_root_path,playlist_path))]
                 playlist_items_old = [x["id"] for x in db.search(where("pl_id")==pl_id)]
@@ -287,9 +285,15 @@ class YTPO:
                     print("\t%s\t|\t%s" % (i["pl_title"],i["vid_title"]))
 
             print("\nThese videos would be REMOVED from the corresponding playlists")
-            summarise_q(del_q)
+            if del_q == []:
+                print("No videos to delete")
+            else:
+                summarise_q(del_q)
             print("\nThese videos would be ADDED to the corresponding playlists")
-            summarise_q(add_q)
+            if add_q == []:
+                print("No videos to add")
+            else:
+                summarise_q(add_q)
 
             print("\nProceed? (Y/n)")
             cmd = input()
@@ -345,7 +349,8 @@ class YTPO:
 
             playlist_items = self.list_playlist_items(pl_id)
             
-            for item in playlist_items:
+            plitem_pbar = tqdm(playlist_items, desc=pl_title)
+            for item in plitem_pbar:
                 item_title = item["snippet"]["title"].replace('/','_').replace('\\','_')
                 item_pos = item["snippet"]["position"]
                 item_vid_id = item["snippet"]["resourceId"]["videoId"]
@@ -354,7 +359,7 @@ class YTPO:
                 db.insert({"id": item_id,"pos": item_pos, "vid_id": item_vid_id, "pl_id": pl_id, "pl_title":pl_title, "vid_title":item_title})
             pl_file.close()
 
-        print("\n The playlists have been retrieved and the files have been generated at %s. When you are done, enter Y to update the playlists online. Press n to abort." %(osp.abspath(playlists_root_path)))
+        print("\n\nThe playlists have been retrieved and the files have been generated at %s. When you are done, enter Y to update the playlists online. Press n to abort." %(osp.abspath(playlists_root_path)))
         cmd = input()
         if cmd == 'Y':
             task_q = []
@@ -384,7 +389,7 @@ class YTPO:
                 task_q += vids_to_remove
                     
             affected_playlists = set([type(self).combine(x["pl_title"],x["pl_id"]) for x in task_q])
-            print("The playlists will be affected")
+            print("The following playlists will be affected")
             for pl in affected_playlists:
                 print(pl)
 
@@ -407,12 +412,13 @@ class YTPO:
         
         shutil.rmtree(playlists_root_path)
 
-    def trim_playlist(self,pl_id):
+    def trim_playlist(self,pl_id, pl_title):
         playlist_items = self.list_playlist_items(pl_id)
         removed_items_cntr = Counter()
         unique_vids = []
 
-        for item in playlist_items:
+        plitem_pbar = tqdm(playlist_items, desc=pl_title)
+        for item in plitem_pbar:
             if item["snippet"]["resourceId"]["videoId"] not in unique_vids:
                 unique_vids.append(item["snippet"]["resourceId"]["videoId"])
             else:
@@ -422,7 +428,8 @@ class YTPO:
         if removed_items_cntr.most_common() == []:
             print("No duplicates found")
         else:
-            print("Ocurrences Title")
+            print("Following duplicates were found")
+            print("\nOcurrences Title")
             for title, count in removed_items_cntr.items():
                 print("%10i %s"%(count+1,title)) 
 
@@ -442,16 +449,19 @@ class YTPO:
         else:
             pl_indexes = [int(x)-1 for x in choices.split(',')]
 
+        print("\nRemoving duplicates ...")
         for pl_index in pl_indexes:
-            print("\nRemoving duplicates from %s" % (playlists[pl_index]["snippet"]["title"]))
-            self.trim_playlist(playlists[pl_index]["id"])
+            self.trim_playlist(playlists[pl_index]["id"],playlists[pl_index]["snippet"]["title"])
+            print("\n")
 
-    def shuffle_playlist(self,pl_id):
+    def shuffle_playlist(self,pl_id, pl_title):
         playlist_items = self.list_playlist_items(pl_id)
         new_positions = list(range(len(playlist_items)))
         random.shuffle(new_positions)
 
-        for i,item in enumerate(playlist_items):
+        plitem_pbar = tqdm(playlist_items, desc=pl_title)
+        for i,item in enumerate(plitem_pbar):
+        # for i,item in enumerate(playlist_items):
             self.update_playlist_item(item["id"],item["snippet"]["playlistId"],item["snippet"]["resourceId"]["videoId"], new_positions[i])
 
     def shuffle_mode(self):
@@ -470,9 +480,10 @@ class YTPO:
         else:
             pl_indexes = [int(x)-1 for x in choices.split(',')]
 
+        print("\nShuffling..." )
         for pl_index in pl_indexes:
-            print("\n Shuffling %s" % (playlists[pl_index]["snippet"]["title"]))
-            self.shuffle_playlist(playlists[pl_index]["id"])
+            self.shuffle_playlist(playlists[pl_index]["id"],playlists[pl_index]["snippet"]["title"])
+            print("\n " )
 
 def main():
     print("-"*12)
