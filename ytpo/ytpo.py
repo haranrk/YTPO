@@ -120,10 +120,22 @@ class YTPO:
                 playlistId=pl_id,
                 maxResults=50
                 ).execute()
+        items = response["items"]
+
+        while "nextPageToken" in response.keys():
+                pageToken = response["nextPageToken"]
+                response = self.youtube.playlistItems().list(
+                        part="snippet",
+                        pageToken=pageToken,
+                        playlistId=pl_id,
+                        maxResults=50
+                        ).execute()
+                items += response["items"]
+
         if verbose:
             for vid in response['items']:
                 print("%s | %s" % (vid["id"], vid["snippet"]["title"]))
-        return response
+        return items
 
     def update_playlist_item(self,id,pl_id,resource_id,new_pos):
         '''
@@ -217,7 +229,7 @@ class YTPO:
             playlist_path = osp.join(playlists_root_path,type(self).combine(pl_title,pl_id))
 
             os.mkdir(playlist_path)
-            playlist_items = self.list_playlist_items(pl_id)['items']
+            playlist_items = self.list_playlist_items(pl_id)
             
             plitem_pbar = tqdm(playlist_items, desc=pl_title)
             for item in plitem_pbar:
@@ -318,7 +330,7 @@ class YTPO:
             pl_path = osp.join(playlists_root_path,type(self).combine(pl_title,pl_id))+'.txt'
             pl_file = open(pl_path,'w')
 
-            playlist_items = self.list_playlist_items(pl_id)['items']
+            playlist_items = self.list_playlist_items(pl_id)
             
             for item in playlist_items:
                 item_title = item["snippet"]["title"].replace('/','_').replace('\\','_')
@@ -359,7 +371,7 @@ class YTPO:
                 task_q += vids_to_remove
                     
             affected_playlists = set([type(self).combine(x["pl_title"],x["pl_id"]) for x in task_q])
-            print("The following changes will be made to your playlists")
+            print("The playlists will be affected")
             for pl in affected_playlists:
                 print(pl)
 
@@ -383,7 +395,7 @@ class YTPO:
         shutil.rmtree(playlists_root_path)
 
     def trim_playlist(self,pl_id):
-        playlist_items = self.list_playlist_items(pl_id)['items']
+        playlist_items = self.list_playlist_items(pl_id)
         removed_items_cntr = Counter()
         unique_vids = []
 
@@ -422,7 +434,7 @@ class YTPO:
             self.trim_playlist(playlists[pl_index]["id"])
 
     def shuffle_playlist(self,pl_id):
-        playlist_items = self.list_playlist_items(pl_id)['items']
+        playlist_items = self.list_playlist_items(pl_id)
         new_positions = list(range(len(playlist_items)))
         random.shuffle(new_positions)
 
