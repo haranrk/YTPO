@@ -8,7 +8,7 @@ pip install ytpo
 ```
 On the first run of any command, YTPO will need to get accesss to your YouTube account. The authorization page will be opened automatically in your default browser. Log in with the Google account you want to make changes to the playlist in.
 
-![Installation](assets/Installation.gif)
+![Installation](assets/installation.gif)
 ## Usage
 It's a CLI.
 ```bash
@@ -31,6 +31,7 @@ The app will then remotely update your playlists to match the directory tree. Th
 
 > After you have made your changes, the app will show you the summary of the edits it will be making before it makes them, so can check if errors if any.
 
+![Folder](assets/Folder.gif)
 ### List mode
 ```bash
 ytpo list
@@ -44,12 +45,14 @@ This mode retrieves all of your playlists, creates a text file for each playlist
 The app will then remotely update your playlists and order to match the files.
 
 > After you have made your changes, the app will show you the summary of the edits it will be making before it makes them, so can check if errors if any.
+![List](assets/list.gif)
 
 ### Trim mode
 ```bash
 ytpo trim
 ```
 Removes duplicate items from the specified playlists
+![Trim](assets/trim.gif)
 
 ### Shuffle mode
 ```bython
