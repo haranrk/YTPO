@@ -45,6 +45,7 @@ This mode retrieves all of your playlists, creates a text file for each playlist
 The app will then remotely update your playlists and order to match the files.
 
 > After you have made your changes, the app will show you the summary of the edits it will be making before it makes them, so can check if errors if any.
+
 ![List](assets/list.gif)
 
 ### Trim mode
