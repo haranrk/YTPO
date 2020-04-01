@@ -97,11 +97,25 @@ class YTPO:
         print('New playlist ID: %s' % playlists_insert_response['id'])
       
     def list_playlists(self, verbose=False):
-        response = self.youtube.playlists().list(part='snippet',mine=True,maxResults=50).execute()
+        response = self.youtube.playlists().list(
+                part='snippet', 
+                mine=True,
+                maxResults=5).execute()
+
+        items = response["items"]
+
+        while "nextPageToken" in response.keys():
+            response = self.youtube.playlists().list(
+                    part='snippet', 
+                    pageToken = response["nextPageToken"],
+                    mine=True,
+                    maxResults=50).execute()
+            items += response["items"]
+
         if verbose:
             for pl in response['items']:
                 print("%s | %s" %(pl["id"],pl['snippet']['title']))
-        return response
+        return items
 
     def list_playlist_items(self,pl_id, verbose=False):
         '''
@@ -123,14 +137,13 @@ class YTPO:
         items = response["items"]
 
         while "nextPageToken" in response.keys():
-                pageToken = response["nextPageToken"]
-                response = self.youtube.playlistItems().list(
-                        part="snippet",
-                        pageToken=pageToken,
-                        playlistId=pl_id,
-                        maxResults=50
-                        ).execute()
-                items += response["items"]
+            response = self.youtube.playlistItems().list(
+                    part="snippet",
+                    pageToken = response["nextPageToken"],
+                    playlistId=pl_id,
+                    maxResults=50
+                    ).execute()
+            items += response["items"]
 
         if verbose:
             for vid in response['items']:
@@ -217,7 +230,7 @@ class YTPO:
         return title[::-1],id[::-1]
 
     def folder_mode(self):
-        playlists = self.list_playlists()['items']
+        playlists = self.list_playlists()
         playlists_root_path = 'YTPO-lists'
         os.mkdir(playlists_root_path)
         db = TinyDB(osp.join(playlists_root_path,'playlists.json'))
@@ -312,7 +325,7 @@ class YTPO:
 
 
     def list_mode(self):
-        playlists = self.list_playlists()['items']
+        playlists = self.list_playlists()
 
         playlists_root_path = 'YTPO-lists'
         try:
@@ -414,7 +427,7 @@ class YTPO:
                 print("%10i %s"%(count+1,title)) 
 
     def trim_mode(self):
-        playlists = self.list_playlists()['items']
+        playlists = self.list_playlists()
         print("Choose which playlists you want to trim.")
         print("S.No. Playlist Name")
         for i,pl in enumerate(playlists):
@@ -442,7 +455,7 @@ class YTPO:
             self.update_playlist_item(item["id"],item["snippet"]["playlistId"],item["snippet"]["resourceId"]["videoId"], new_positions[i])
 
     def shuffle_mode(self):
-        playlists = self.list_playlists()['items']
+        playlists = self.list_playlists()
         print("Choose which playlists you want to shuffle.")
         print("S.No. Playlist Name")
         for i,pl in enumerate(playlists):
