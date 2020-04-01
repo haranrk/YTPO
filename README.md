@@ -8,6 +8,7 @@ pip install ytpo
 ```
 On the first run of any command, YTPO will need to get accesss to your YouTube account. The authorization page will be opened automatically in your default browser. Log in with the Google account you want to make changes to the playlist in.
 
+![Installation](assets/Installation.gif)
 ## Usage
 It's a CLI.
 ```Python
