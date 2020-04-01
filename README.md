@@ -31,7 +31,7 @@ The app will then remotely update your playlists to match the directory tree. Th
 
 > After you have made your changes, the app will show you the summary of the edits it will be making before it makes them, so can check if errors if any.
 
-![Folder](assets/Folder.gif)
+![Folder](assets/folder.gif)
 ### List mode
 ```bash
 ytpo list
