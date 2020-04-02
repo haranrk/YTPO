@@ -13,19 +13,18 @@ setuptools.setup(
     install_requires=[
         'google-api-python-client',
         'tqdm',
-        'google-auth-oauthlib', 
+        'google-auth-oauthlib',
         'google-auth-httplib2',
         'tinydb'
         ],
     entry_points='''
         [console_scripts]
         ytpo=ytpo.ytpo:main
-    ''',     
+    ''',
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-    ],   
-    
+    ],
 )
 

@@ -8,14 +8,11 @@ import shutil
 import os.path as osp
 import json
 from tqdm import tqdm
-import pprint as pp
 
 import google.oauth2.credentials
-import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
-from tinydb import TinyDB, where, Query
+from tinydb import TinyDB, where 
 
 # The CLIENT_SECRETS_FILE variable specifies the name of a file that contains
 # the OAuth 2.0 information for this application, including its client_id and
@@ -52,8 +49,8 @@ class YTPO:
             print("Credentials file not found")
             flow = InstalledAppFlow.from_client_secrets_file(self.CLIENT_SECRETS_FILE, SCOPES)
             credentials = flow.run_local_server(host='localhost',
-            port=8080, 
-            authorization_prompt_message='Please visit this URL: {url}', 
+            port=8080,
+            authorization_prompt_message='Please visit this URL: {url}',
             success_message='The auth flow is complete; you may close this window.',
             open_browser=True)
 
@@ -106,7 +103,7 @@ class YTPO:
 
         while "nextPageToken" in response.keys():
             response = self.youtube.playlists().list(
-                    part='snippet', 
+                    part='snippet',
                     pageToken = response["nextPageToken"],
                     mine=True,
                     maxResults=50).execute()
@@ -150,7 +147,7 @@ class YTPO:
                 print("%s | %s" % (vid["id"], vid["snippet"]["title"]))
         return items
 
-    def update_playlist_item(self,id,pl_id,resource_id,new_pos):
+    def update_playlist_item(self,item_id,pl_id,resource_id,new_pos):
         '''
         Updates the corresponding playlist item with either a different video and/or position
 
@@ -161,7 +158,7 @@ class YTPO:
         new_pos -- Position of item within the playlist
         '''
         body = {
-                "id": id,
+                "id": item_id,
                 "snippet": {
                         "playlistId": pl_id,
                         "resourceId": {
@@ -204,20 +201,20 @@ class YTPO:
                 ).execute()
         return response
 
-    def remove_playlist_item(self,id):
+    def remove_playlist_item(self,item_id):
         '''
         Removes item from playlist
         Parameters:
         id -- ID of playlist item
         '''
-        return self.youtube.playlistItems().delete(id=id).execute()
+        return self.youtube.playlistItems().delete(id=item_id).execute()
 
     @classmethod
-    def combine(cls,title, id):
+    def combine(cls,title, item_id):
         '''
         Combines the title and id with the separator
         '''
-        return "%s%s%s"%(title,cls.separator,id)
+        return "%s%s%s"%(title,cls.separator,item_id)
 
     @classmethod
     def separate(cls,id_str):
@@ -265,7 +262,7 @@ class YTPO:
                 playlist_items_new = [type(self).separate(x)[1] for x in type(self).list_only_ytpo_files(osp.join(playlists_root_path,playlist_path))]
                 playlist_items_old = [x["id"] for x in db.search(where("pl_id")==pl_id)]
 
-                # For adding 
+                # For adding
                 for item_id in playlist_items_new:
                     if not item_id in playlist_items_old:
                         item = db.search(where("id")==item_id)[0]
@@ -370,7 +367,7 @@ class YTPO:
                 pl_path = osp.join(playlists_root_path,type(self).combine(pl_title,pl_id))+'.txt'
                 pl_file = open(pl_path,'r')
                 pl_hash_items = pl_file.readlines()
-                pl_hash_items = [x.strip() for x in pl_hash_items] 
+                pl_hash_items = [x.strip() for x in pl_hash_items]
                 pl_file.close()
 
                 pl_items_old = db.search(where("pl_id")==pl_id)
