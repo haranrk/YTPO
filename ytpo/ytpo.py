@@ -27,6 +27,7 @@ from tinydb import TinyDB, where
     
 class YTPO:
     separator = '| - | - |' #String used to separate the title and ID for list and file modes
+    liked_videos_pl_id = 'liked-videos'
     def __init__(self):
         self.ytpo_root = osp.dirname(__file__)
 
@@ -93,11 +94,11 @@ class YTPO:
 
         print('New playlist ID: %s' % playlists_insert_response['id'])
       
-    def list_playlists(self, verbose=False):
+    def list_playlists(self, include_liked_pl, verbose=False):
         response = self.youtube.playlists().list(
                 part='snippet', 
                 mine=True,
-                maxResults=5).execute()
+                maxResults=50).execute()
 
         items = response["items"]
 
@@ -109,8 +110,16 @@ class YTPO:
                     maxResults=50).execute()
             items += response["items"]
 
+        if include_liked_pl == True:
+            items.append({
+                'id': type(self).liked_videos_pl_id,
+                'snippet': {
+                    'title': "Liked Videos",
+                    }
+                })
+
         if verbose:
-            for pl in response['items']:
+            for pl in items:
                 print("%s | %s" %(pl["id"],pl['snippet']['title']))
         return items
 
@@ -126,24 +135,49 @@ class YTPO:
         list -- playlist items
         '''
 
-        response = self.youtube.playlistItems().list(
-                part="snippet",
-                playlistId=pl_id,
-                maxResults=50
-                ).execute()
-        items = response["items"]
+        if pl_id==type(self).liked_videos_pl_id:
+            response = self.youtube.videos().list(
+                    part="snippet",
+                    myRating="like",
+                    maxResults=50
+                    ).execute()
+            items = response["items"]
 
-        while "nextPageToken" in response.keys():
+            while "nextPageToken" in response.keys():
+                response = self.youtube.videos().list(
+                        part="snippet",
+                        pageToken = response["nextPageToken"],
+                        myRating="like",
+                        maxResults=50
+                        ).execute()
+                items += response["items"]
+
+                for i,item in enumerate(items): #Modifying response to resemble playlist item to maintain code uniformity 
+                    item["snippet"]["position"] = i
+                    item["snippet"]["resourceId"] = {
+                            "videoId": item["id"]
+                            }
+
+                    # item["id"] ="NA"
+        else:
             response = self.youtube.playlistItems().list(
                     part="snippet",
-                    pageToken = response["nextPageToken"],
                     playlistId=pl_id,
                     maxResults=50
                     ).execute()
-            items += response["items"]
+            items = response["items"]
+
+            while "nextPageToken" in response.keys():
+                response = self.youtube.playlistItems().list(
+                        part="snippet",
+                        pageToken = response["nextPageToken"],
+                        playlistId=pl_id,
+                        maxResults=50
+                        ).execute()
+                items += response["items"]
 
         if verbose:
-            for vid in response['items']:
+            for vid in items:
                 print("%s | %s" % (vid["id"], vid["snippet"]["title"]))
         return items
 
@@ -227,7 +261,7 @@ class YTPO:
         return title[::-1],id[::-1]
 
     def folder_mode(self):
-        playlists = self.list_playlists()
+        playlists = self.list_playlists(include_liked_pl=True)
         playlists_root_path = 'YTPO-lists'
         os.mkdir(playlists_root_path)
         db = TinyDB(osp.join(playlists_root_path,'playlists.json'))
@@ -249,7 +283,9 @@ class YTPO:
                 open(osp.join(playlist_path,type(self).combine(item_title,item_id)),'a').close()
                 db.insert({"id": item_id,"vid_id": item_vid_id, "pl_id": pl_id, "pl_title":pl_title, "vid_title":item_title})
 
-        print("\n\nThe playlists have been retrieved and the folders have been generated at %s. When you are done, enter Y to update the playlists online. Press n to abort." %(osp.abspath(playlists_root_path)))
+        print("\n\nThe playlists have been retrieved and the folders have been generated at %s." %(osp.abspath(playlists_root_path)))
+        print("The Liked Videos playlist is an automatic playlist and thus, unmodifiable. Therefore, any changes made to it's folder will be ignored.")
+        print("When you are done, enter Y to update the playlists online. Press n to abort.")
         cmd = input()
         if cmd == 'Y':
             playlist_paths = type(self).list_only_ytpo_files(playlists_root_path)
@@ -258,6 +294,8 @@ class YTPO:
 
             for playlist_path in playlist_paths:
                 pl_title, pl_id = type(self).separate(playlist_path)
+                if pl_id==type(self).liked_videos_pl_id:
+                    continue
                 
                 playlist_items_new = [type(self).separate(x)[1] for x in type(self).list_only_ytpo_files(osp.join(playlists_root_path,playlist_path))]
                 playlist_items_old = [x["id"] for x in db.search(where("pl_id")==pl_id)]
@@ -324,9 +362,8 @@ class YTPO:
         x = filter(starts_with_stop,x)
         return x
 
-
     def list_mode(self):
-        playlists = self.list_playlists()
+        playlists = self.list_playlists(include_liked_pl=True)
 
         playlists_root_path = 'YTPO-lists'
         try:
@@ -356,7 +393,9 @@ class YTPO:
                 db.insert({"id": item_id,"pos": item_pos, "vid_id": item_vid_id, "pl_id": pl_id, "pl_title":pl_title, "vid_title":item_title})
             pl_file.close()
 
-        print("\n\nThe playlists have been retrieved and the files have been generated at %s. When you are done, enter Y to update the playlists online. Press n to abort." %(osp.abspath(playlists_root_path)))
+        print("\n\nThe playlists have been retrieved and the files have been generated at %s." %(osp.abspath(playlists_root_path)))
+        print("The Liked Videos playlist is an automatic playlist and thus, unmodifiable. Therefore, any changes made to it's file will be ignored.")
+        print("When you are done, enter Y to update the playlists online. Press n to abort.")
         cmd = input()
         if cmd == 'Y':
             task_q = []
@@ -364,6 +403,8 @@ class YTPO:
             pl_files = [(type(self).separate(x[:-4])) for x in pl_files]
 
             for pl_title, pl_id in pl_files:
+                if pl_id==type(self).liked_videos_pl_id:
+                    continue
                 pl_path = osp.join(playlists_root_path,type(self).combine(pl_title,pl_id))+'.txt'
                 pl_file = open(pl_path,'r')
                 pl_hash_items = pl_file.readlines()
@@ -431,7 +472,7 @@ class YTPO:
                 print("%10i %s"%(count+1,title)) 
 
     def trim_mode(self):
-        playlists = self.list_playlists()
+        playlists = self.list_playlists(include_liked_pl=False)
         print("Choose which playlists you want to trim.")
         print("S.No. Playlist Name")
         for i,pl in enumerate(playlists):
@@ -462,7 +503,7 @@ class YTPO:
             self.update_playlist_item(item["id"],item["snippet"]["playlistId"],item["snippet"]["resourceId"]["videoId"], new_positions[i])
 
     def shuffle_mode(self):
-        playlists = self.list_playlists()
+        playlists = self.list_playlists(include_liked_pl=False)
         print("Choose which playlists you want to shuffle.")
         print("S.No. Playlist Name")
         for i,pl in enumerate(playlists):
