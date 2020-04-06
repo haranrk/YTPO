@@ -523,6 +523,14 @@ class YTPO:
             self.shuffle_playlist(playlists[pl_index]["id"],playlists[pl_index]["snippet"]["title"])
             print("\n " )
 
+    def logout(self):
+        '''
+        Deletes the saved user's session details
+        '''
+        CLIENT_CREDENTIALS_FILE = osp.join(self.ytpo_root,'secrets','credentials.json')
+        os.remove(CLIENT_CREDENTIALS_FILE)
+        print("Logged out")
+
 def main():
     print("-"*12)
     print("    YTPO")
@@ -540,6 +548,9 @@ def main():
     list_parser.set_defaults(func=x.list_mode)
     folder_parser = sub_parsers.add_parser("folder",help="Creates a folders for each playlist containing a mock file for each play list item")
     folder_parser.set_defaults(func=x.folder_mode)
+
+    logout_parser = sub_parsers.add_parser("logout", help="Logs out of the session")
+    logout_parser.set_defaults(func=x.logout)
 
     args = parser.parse_args()
     args.func()
